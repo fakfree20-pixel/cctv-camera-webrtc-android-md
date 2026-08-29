@@ -22,14 +22,21 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Restore Debug Keystore & Secrets
+    - name: Accept Licenses & Install Android SDK
       run: |
+        yes | sdkmanager --licenses || true
+        sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "build-tools;35.0.0" || true
+
+    - name: Prepare Environment & Keystore
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+        cp .env.example .env 2>/dev/null || touch .env
         if [ -f debug.keystore.base64 ]; then
-          base64 -d debug.keystore.base64 > debug.keystore
-        else
+          base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 --decode debug.keystore.base64 > debug.keystore 2>/dev/null || true
+        fi
+        if [ ! -s debug.keystore ]; then
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         fi
-        cp .env.example .env || touch .env
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
@@ -37,7 +44,7 @@ jobs:
         gradle-version: '8.11.1'
 
     - name: Build Debug APK
-      run: gradle :app:assembleDebug --stacktrace
+      run: gradle :app:assembleDebug --stacktrace --no-configuration-cache --no-daemon
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
