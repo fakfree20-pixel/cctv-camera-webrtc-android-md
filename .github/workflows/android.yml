@@ -19,18 +19,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Accept Licenses & Install Android SDK
+    - name: Prepare Secrets and Environment
       run: |
-        yes | sdkmanager --licenses || true
-        sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "build-tools;35.0.0" || true
-
-    - name: Prepare Environment & Keystore
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
-        cp .env.example .env 2>/dev/null || touch .env
+        touch .env
+        if [ -f .env.example ]; then
+          cp .env.example .env
+        fi
         if [ -f debug.keystore.base64 ]; then
           base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 --decode debug.keystore.base64 > debug.keystore 2>/dev/null || true
         fi
@@ -40,22 +34,21 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
-      with:
-        gradle-version: '8.11.1'
 
-    - name: Build Debug APK
-      run: gradle :app:assembleDebug --stacktrace --no-configuration-cache --no-daemon
+    - name: Build APK with Gradle
+      run: ./gradlew assembleDebug --stacktrace --no-daemon || gradle :app:assembleDebug --stacktrace --no-daemon
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: cctv-app-debug
+        name: cctv-camera-app
         path: app/build/outputs/apk/debug/*.apk
 
-    - name: Create Release
+    - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
       uses: softprops/action-gh-release@v2
       with:
         files: app/build/outputs/apk/debug/*.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
