@@ -1,0 +1,6 @@
+{
+  "name": "Remote CCTV Control",
+  "description": "Turn an old phone into a remote-controlled CCTV security camera and stream live video & audio to a viewer phone with two-way talk, camera switch, torch, and siren alarm.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
